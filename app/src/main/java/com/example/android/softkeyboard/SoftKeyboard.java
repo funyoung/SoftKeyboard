@@ -33,6 +33,9 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.InputMethodSubtype;
 
+import com.pattern.ImmDelegate;
+import com.pattern.ImmDelegateFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,7 +46,7 @@ import java.util.List;
  * a basic example for how you would get started writing an input method, to
  * be fleshed out as appropriate.
  */
-public class SoftKeyboard extends InputMethodService 
+public class SoftKeyboard extends InputMethodService
         implements KeyboardView.OnKeyboardActionListener {
     static final boolean DEBUG = false;
     
@@ -56,8 +59,6 @@ public class SoftKeyboard extends InputMethodService
      * that are primarily intended to be used for on-screen text entry.
      */
     static final boolean PROCESS_HARD_KEYS = true;
-
-    private InputMethodManager mInputMethodManager;
 
     private LatinKeyboardView mInputView;
     private CandidateView mCandidateView;
@@ -78,14 +79,20 @@ public class SoftKeyboard extends InputMethodService
     private LatinKeyboard mCurKeyboard;
     
     private String mWordSeparators;
-    
+
+    private final ImmDelegate immDelegate;
+
+    public SoftKeyboard() {
+        immDelegate = ImmDelegateFactory.getDelegate();
+    }
+
     /**
      * Main initialization of the input method component.  Be sure to call
      * to super class.
      */
     @Override public void onCreate() {
         super.onCreate();
-        mInputMethodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+        immDelegate.onCreate((InputMethodManager)getSystemService(INPUT_METHOD_SERVICE));
         mWordSeparators = getResources().getString(R.string.word_separators);
     }
     
@@ -123,7 +130,7 @@ public class SoftKeyboard extends InputMethodService
 
     private void setLatinKeyboard(LatinKeyboard nextKeyboard) {
         final boolean shouldSupportLanguageSwitchKey =
-                mInputMethodManager.shouldOfferSwitchingToNextInputMethod(getToken());
+                immDelegate.shouldOfferSwitchingToNextInputMethod(getToken());
         nextKeyboard.setLanguageSwitchKeyVisibility(shouldSupportLanguageSwitchKey);
         mInputView.setKeyboard(nextKeyboard);
     }
@@ -259,8 +266,7 @@ public class SoftKeyboard extends InputMethodService
         // Apply the selected keyboard to the input view.
         setLatinKeyboard(mCurKeyboard);
         mInputView.closing();
-        final InputMethodSubtype subtype = mInputMethodManager.getCurrentInputMethodSubtype();
-        mInputView.setSubtypeOnSpaceKey(subtype);
+        immDelegate.onStartInputView(mInputView);
     }
 
     @Override
@@ -652,7 +658,7 @@ public class SoftKeyboard extends InputMethodService
     }
 
     private void handleLanguageSwitch() {
-        mInputMethodManager.switchToNextInputMethod(getToken(), false /* onlyCurrentIme */);
+        immDelegate.switchToNextInputMethod(getToken(), false /* onlyCurrentIme */);
     }
 
     private void checkToggleCapsLock() {

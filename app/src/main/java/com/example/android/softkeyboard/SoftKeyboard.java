@@ -36,6 +36,7 @@ import android.view.inputmethod.InputMethodSubtype;
 import com.pattern.ImmDelegate;
 import com.pattern.ImmDelegateFactory;
 import com.pattern.KeyboardDelegate;
+import com.pattern.SeparatorDelegate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,13 @@ import java.util.List;
  * to be a complete soft keyboard implementation.  Its purpose is to provide
  * a basic example for how you would get started writing an input method, to
  * be fleshed out as appropriate.
+ *
+ * todo:
+ * 1. View encapsulation
+ * 2. Completion and Composing data responsibility
+ * 3. Caps Lock and Shift
+ * 4. Meta state for hard keyboard.
+ * 
  */
 public class SoftKeyboard extends InputMethodService
         implements KeyboardView.OnKeyboardActionListener {
@@ -71,8 +79,7 @@ public class SoftKeyboard extends InputMethodService
     private long mLastShiftTime;
     private long mMetaState;
 
-    private String mWordSeparators;
-
+    private final SeparatorDelegate separatorDelegate = new SeparatorDelegate(getResources());
     private final KeyboardDelegate keyboardDelegate = new KeyboardDelegate();
     private final ImmDelegate immDelegate;
 
@@ -87,7 +94,6 @@ public class SoftKeyboard extends InputMethodService
     @Override public void onCreate() {
         super.onCreate();
         immDelegate.onCreate((InputMethodManager)getSystemService(INPUT_METHOD_SERVICE));
-        mWordSeparators = getResources().getString(R.string.word_separators);
     }
     
     /**
@@ -580,14 +586,9 @@ public class SoftKeyboard extends InputMethodService
             mLastShiftTime = now;
         }
     }
-    
-    private String getWordSeparators() {
-        return mWordSeparators;
-    }
-    
+
     public boolean isWordSeparator(int code) {
-        String separators = getWordSeparators();
-        return separators.contains(String.valueOf((char)code));
+        return separatorDelegate.isWordSeparator(code);
     }
 
     public void pickDefaultCandidate() {

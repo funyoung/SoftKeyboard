@@ -35,6 +35,7 @@ import android.view.inputmethod.InputMethodSubtype;
 
 import com.pattern.ImmDelegate;
 import com.pattern.ImmDelegateFactory;
+import com.pattern.KeyboardDelegate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,21 +66,14 @@ public class SoftKeyboard extends InputMethodService
     private CompletionInfo[] mCompletions;
     
     private StringBuilder mComposing = new StringBuilder();
-    private boolean mPredictionOn;
-    private boolean mCompletionOn;
     private int mLastDisplayWidth;
     private boolean mCapsLock;
     private long mLastShiftTime;
     private long mMetaState;
-    
-    private LatinKeyboard mSymbolsKeyboard;
-    private LatinKeyboard mSymbolsShiftedKeyboard;
-    private LatinKeyboard mQwertyKeyboard;
-    
-    private LatinKeyboard mCurKeyboard;
-    
+
     private String mWordSeparators;
 
+    private final KeyboardDelegate keyboardDelegate = new KeyboardDelegate();
     private final ImmDelegate immDelegate;
 
     public SoftKeyboard() {
@@ -101,7 +95,7 @@ public class SoftKeyboard extends InputMethodService
      * is called after creation and any configuration change.
      */
     @Override public void onInitializeInterface() {
-        if (mQwertyKeyboard != null) {
+        if (keyboardDelegate.initialized()) {
             // Configuration changes can happen after the keyboard gets recreated,
             // so we need to be able to re-build the keyboards if the available
             // space has changed.
@@ -109,9 +103,7 @@ public class SoftKeyboard extends InputMethodService
             if (displayWidth == mLastDisplayWidth) return;
             mLastDisplayWidth = displayWidth;
         }
-        mQwertyKeyboard = new LatinKeyboard(this, R.xml.qwerty);
-        mSymbolsKeyboard = new LatinKeyboard(this, R.xml.symbols);
-        mSymbolsShiftedKeyboard = new LatinKeyboard(this, R.xml.symbols_shift);
+        keyboardDelegate.onInitializeInterface(this);
     }
     
     /**
@@ -124,11 +116,11 @@ public class SoftKeyboard extends InputMethodService
         mInputView = (LatinKeyboardView) getLayoutInflater().inflate(
                 R.layout.input, null);
         mInputView.setOnKeyboardActionListener(this);
-        setLatinKeyboard(mQwertyKeyboard);
+        keyboardDelegate.onCreateInputView(this);
         return mInputView;
     }
 
-    private void setLatinKeyboard(LatinKeyboard nextKeyboard) {
+    public void setLatinKeyboard(LatinKeyboard nextKeyboard) {
         final boolean shouldSupportLanguageSwitchKey =
                 immDelegate.shouldOfferSwitchingToNextInputMethod(getToken());
         nextKeyboard.setLanguageSwitchKeyVisibility(shouldSupportLanguageSwitchKey);
@@ -163,79 +155,9 @@ public class SoftKeyboard extends InputMethodService
             // Clear shift states.
             mMetaState = 0;
         }
-        
-        mPredictionOn = false;
-        mCompletionOn = false;
+
         mCompletions = null;
-        
-        // We are now going to initialize our state based on the type of
-        // text being edited.
-        switch (attribute.inputType & InputType.TYPE_MASK_CLASS) {
-            case InputType.TYPE_CLASS_NUMBER:
-            case InputType.TYPE_CLASS_DATETIME:
-                // Numbers and dates default to the symbols keyboard, with
-                // no extra features.
-                mCurKeyboard = mSymbolsKeyboard;
-                break;
-                
-            case InputType.TYPE_CLASS_PHONE:
-                // Phones will also default to the symbols keyboard, though
-                // often you will want to have a dedicated phone keyboard.
-                mCurKeyboard = mSymbolsKeyboard;
-                break;
-                
-            case InputType.TYPE_CLASS_TEXT:
-                // This is general text editing.  We will default to the
-                // normal alphabetic keyboard, and assume that we should
-                // be doing predictive text (showing candidates as the
-                // user types).
-                mCurKeyboard = mQwertyKeyboard;
-                mPredictionOn = true;
-                
-                // We now look for a few special variations of text that will
-                // modify our behavior.
-                int variation = attribute.inputType & InputType.TYPE_MASK_VARIATION;
-                if (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
-                        variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) {
-                    // Do not display predictions / what the user is typing
-                    // when they are entering a password.
-                    mPredictionOn = false;
-                }
-                
-                if (variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-                        || variation == InputType.TYPE_TEXT_VARIATION_URI
-                        || variation == InputType.TYPE_TEXT_VARIATION_FILTER) {
-                    // Our predictions are not useful for e-mail addresses
-                    // or URIs.
-                    mPredictionOn = false;
-                }
-                
-                if ((attribute.inputType & InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE) != 0) {
-                    // If this is an auto-complete text view, then our predictions
-                    // will not be shown and instead we will allow the editor
-                    // to supply their own.  We only show the editor's
-                    // candidates when in fullscreen mode, otherwise relying
-                    // own it displaying its own UI.
-                    mPredictionOn = false;
-                    mCompletionOn = isFullscreenMode();
-                }
-                
-                // We also want to look at the current state of the editor
-                // to decide whether our alphabetic keyboard should start out
-                // shifted.
-                updateShiftKeyState(attribute);
-                break;
-                
-            default:
-                // For all unknown input types, default to the alphabetic
-                // keyboard with no special features.
-                mCurKeyboard = mQwertyKeyboard;
-                updateShiftKeyState(attribute);
-        }
-        
-        // Update the label on the enter key, depending on what the application
-        // says it will do.
-        mCurKeyboard.setImeOptions(getResources(), attribute.imeOptions);
+        keyboardDelegate.onStartInput(this, attribute);
     }
 
     /**
@@ -254,8 +176,7 @@ public class SoftKeyboard extends InputMethodService
         // up and down if the user is entering text into the bottom of
         // its window.
         setCandidatesViewShown(false);
-        
-        mCurKeyboard = mQwertyKeyboard;
+        keyboardDelegate.onFinishInput();
         if (mInputView != null) {
             mInputView.closing();
         }
@@ -264,7 +185,7 @@ public class SoftKeyboard extends InputMethodService
     @Override public void onStartInputView(EditorInfo attribute, boolean restarting) {
         super.onStartInputView(attribute, restarting);
         // Apply the selected keyboard to the input view.
-        setLatinKeyboard(mCurKeyboard);
+        keyboardDelegate.onStartInputView(this);
         mInputView.closing();
         immDelegate.onStartInputView(mInputView);
     }
@@ -303,7 +224,7 @@ public class SoftKeyboard extends InputMethodService
      * in that situation.
      */
     @Override public void onDisplayCompletions(CompletionInfo[] completions) {
-        if (mCompletionOn) {
+        if (isCompletionOn()) {
             mCompletions = completions;
             if (completions == null) {
                 setSuggestions(null, false, false);
@@ -414,7 +335,7 @@ public class SoftKeyboard extends InputMethodService
                             return true;
                         }
                     }
-                    if (mPredictionOn && translateKeyDown(keyCode, event)) {
+                    if (isPredictionOn() && translateKeyDown(keyCode, event)) {
                         return true;
                     }
                 }
@@ -433,7 +354,7 @@ public class SoftKeyboard extends InputMethodService
         // keyboard, we need to process the up events to update the meta key
         // state we are tracking.
         if (PROCESS_HARD_KEYS) {
-            if (mPredictionOn) {
+            if (isPredictionOn()) {
                 mMetaState = MetaKeyKeyListener.handleKeyUp(mMetaState,
                         keyCode, event);
             }
@@ -457,9 +378,9 @@ public class SoftKeyboard extends InputMethodService
      * Helper to update the shift state of our keyboard based on the initial
      * editor state.
      */
-    private void updateShiftKeyState(EditorInfo attr) {
+    public void updateShiftKeyState(EditorInfo attr) {
         if (attr != null 
-                && mInputView != null && mQwertyKeyboard == mInputView.getKeyboard()) {
+                && mInputView != null && keyboardDelegate.hasShiftState(mInputView.getKeyboard())) {
             int caps = 0;
             EditorInfo ei = getCurrentInputEditorInfo();
             if (ei != null && ei.inputType != InputType.TYPE_NULL) {
@@ -533,12 +454,7 @@ public class SoftKeyboard extends InputMethodService
         } else if (primaryCode == Keyboard.KEYCODE_MODE_CHANGE
                 && mInputView != null) {
             Keyboard current = mInputView.getKeyboard();
-            if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) {
-                setLatinKeyboard(mQwertyKeyboard);
-            } else {
-                setLatinKeyboard(mSymbolsKeyboard);
-                mSymbolsKeyboard.setShifted(false);
-            }
+            keyboardDelegate.handleModeChange(this, current);
         } else {
             handleCharacter(primaryCode, keyCodes);
         }
@@ -562,7 +478,7 @@ public class SoftKeyboard extends InputMethodService
      * candidates.
      */
     private void updateCandidates() {
-        if (!mCompletionOn) {
+        if (!isCompletionOn()) {
             if (mComposing.length() > 0) {
                 ArrayList<String> list = new ArrayList<String>();
                 list.add(mComposing.toString());
@@ -605,20 +521,14 @@ public class SoftKeyboard extends InputMethodService
         if (mInputView == null) {
             return;
         }
-        
+
         Keyboard currentKeyboard = mInputView.getKeyboard();
-        if (mQwertyKeyboard == currentKeyboard) {
+        if (keyboardDelegate.hasShiftState(currentKeyboard)) {
             // Alphabet keyboard
             checkToggleCapsLock();
             mInputView.setShifted(mCapsLock || !mInputView.isShifted());
-        } else if (currentKeyboard == mSymbolsKeyboard) {
-            mSymbolsKeyboard.setShifted(true);
-            setLatinKeyboard(mSymbolsShiftedKeyboard);
-            mSymbolsShiftedKeyboard.setShifted(true);
-        } else if (currentKeyboard == mSymbolsShiftedKeyboard) {
-            mSymbolsShiftedKeyboard.setShifted(false);
-            setLatinKeyboard(mSymbolsKeyboard);
-            mSymbolsKeyboard.setShifted(false);
+        } else {
+            keyboardDelegate.handleShift(this, currentKeyboard);
         }
     }
     
@@ -628,7 +538,7 @@ public class SoftKeyboard extends InputMethodService
                 primaryCode = Character.toUpperCase(primaryCode);
             }
         }
-        if (isAlphabet(primaryCode) && mPredictionOn) {
+        if (isAlphabet(primaryCode) && isPredictionOn()) {
             mComposing.append((char) primaryCode);
             getCurrentInputConnection().setComposingText(mComposing, 1);
             updateShiftKeyState(getCurrentInputEditorInfo());
@@ -685,7 +595,7 @@ public class SoftKeyboard extends InputMethodService
     }
     
     public void pickSuggestionManually(int index) {
-        if (mCompletionOn && mCompletions != null && index >= 0
+        if (isCompletionOn() && mCompletions != null && index >= 0
                 && index < mCompletions.length) {
             CompletionInfo ci = mCompletions[index];
             getCurrentInputConnection().commitCompletion(ci);
@@ -702,7 +612,7 @@ public class SoftKeyboard extends InputMethodService
     }
     
     public void swipeRight() {
-        if (mCompletionOn) {
+        if (isCompletionOn()) {
             pickDefaultCandidate();
         }
     }
@@ -722,5 +632,12 @@ public class SoftKeyboard extends InputMethodService
     }
     
     public void onRelease(int primaryCode) {
+    }
+
+    private boolean isCompletionOn() {
+        return keyboardDelegate.isCompletionOn();
+    }
+    private boolean isPredictionOn() {
+        return keyboardDelegate.isPredictionOn();
     }
 }

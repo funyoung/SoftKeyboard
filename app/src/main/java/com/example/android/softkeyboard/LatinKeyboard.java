@@ -106,7 +106,7 @@ public class LatinKeyboard extends Keyboard {
      * This looks at the ime options given by the current editor, to set the
      * appropriate label on the keyboard's enter key (if it has one).
      */
-    void setImeOptions(Resources res, int options) {
+    public void setImeOptions(Resources res, int options) {
         if (mEnterKey == null) {
             return;
         }

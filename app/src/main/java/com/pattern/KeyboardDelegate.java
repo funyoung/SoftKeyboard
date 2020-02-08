@@ -1,13 +1,20 @@
 package com.pattern;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.inputmethodservice.Keyboard;
 import android.text.InputType;
+import android.view.KeyEvent;
+import android.view.WindowManager;
+import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 
 import com.example.android.softkeyboard.LatinKeyboard;
 import com.example.android.softkeyboard.R;
-import com.example.android.softkeyboard.SoftKeyboard;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Delegation of 3 keyboard(latin, 2 symbol) and switch flag of prediction and
@@ -15,8 +22,16 @@ import com.example.android.softkeyboard.SoftKeyboard;
  * this class.
  */
 public class KeyboardDelegate {
+    private StringBuilder mComposing = new StringBuilder();
+    private CompletionInfo[] mCompletions;
+
     private boolean mPredictionOn;
     private boolean mCompletionOn;
+
+    private int mLastDisplayWidth;
+
+    private boolean mCapsLock;
+    private long mLastShiftTime;
 
     private LatinKeyboard mSymbolsKeyboard;
     private LatinKeyboard mSymbolsShiftedKeyboard;
@@ -34,12 +49,27 @@ public class KeyboardDelegate {
      * @param context
      */
     public void onInitializeInterface(Context context) {
+        if (initialized()) {
+            // Configuration changes can happen after the keyboard gets recreated,
+            // so we need to be able to re-build the keyboards if the available
+            // space has changed.
+            int displayWidth = getMaxWidth(context);
+            if (displayWidth == mLastDisplayWidth) return;
+            mLastDisplayWidth = displayWidth;
+        }
+
         mQwertyKeyboard = new LatinKeyboard(context, R.xml.qwerty);
         mSymbolsKeyboard = new LatinKeyboard(context, R.xml.symbols);
         mSymbolsShiftedKeyboard = new LatinKeyboard(context, R.xml.symbols_shift);
     }
 
+    private int getMaxWidth(Context context) {
+        WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        return wm.getDefaultDisplay().getWidth();
+    }
+
     public void onFinishInput() {
+        mComposing.setLength(0);
         mCurKeyboard = mQwertyKeyboard;
     }
 
@@ -47,19 +77,32 @@ public class KeyboardDelegate {
         return mQwertyKeyboard == keyboard;
     }
 
-    public void handleShift(SoftKeyboard softKeyboard, Keyboard currentKeyboard) {
-        if (currentKeyboard == mSymbolsKeyboard) {
-            mSymbolsKeyboard.setShifted(true);
-            softKeyboard.setLatinKeyboard(mSymbolsShiftedKeyboard);
-            mSymbolsShiftedKeyboard.setShifted(true);
-        } else if (currentKeyboard == mSymbolsShiftedKeyboard) {
-            mSymbolsShiftedKeyboard.setShifted(false);
-            softKeyboard.setLatinKeyboard(mSymbolsKeyboard);
-            mSymbolsKeyboard.setShifted(false);
+    public boolean handleShift(KeyboardService softKeyboard, Keyboard currentKeyboard) {
+        if (hasShiftState(currentKeyboard)) {
+            // Alphabet keyboard
+            long now = System.currentTimeMillis();
+            if (mLastShiftTime + 800 > now) {
+                mCapsLock = !mCapsLock;
+                mLastShiftTime = 0;
+            } else {
+                mLastShiftTime = now;
+            }
+            return true;
+        } else {
+            if (currentKeyboard == mSymbolsKeyboard) {
+                mSymbolsKeyboard.setShifted(true);
+                softKeyboard.setLatinKeyboard(mSymbolsShiftedKeyboard);
+                mSymbolsShiftedKeyboard.setShifted(true);
+            } else if (currentKeyboard == mSymbolsShiftedKeyboard) {
+                mSymbolsShiftedKeyboard.setShifted(false);
+                softKeyboard.setLatinKeyboard(mSymbolsKeyboard);
+                mSymbolsKeyboard.setShifted(false);
+            }
+            return false;
         }
     }
 
-    public void handleModeChange(SoftKeyboard softKeyboard, Keyboard current) {
+    public void handleModeChange(KeyboardService softKeyboard, Keyboard current) {
         if (current == mSymbolsKeyboard || current == mSymbolsShiftedKeyboard) {
             softKeyboard.setLatinKeyboard(mQwertyKeyboard);
         } else {
@@ -68,15 +111,18 @@ public class KeyboardDelegate {
         }
     }
 
-    public void onCreateInputView(SoftKeyboard softKeyboard) {
+    public void onCreateInputView(KeyboardService softKeyboard) {
         softKeyboard.setLatinKeyboard(mQwertyKeyboard);
     }
 
-    public void onStartInputView(SoftKeyboard softKeyboard) {
+    public void onStartInputView(KeyboardService softKeyboard) {
         softKeyboard.setLatinKeyboard(mCurKeyboard);
     }
 
-    public void onStartInput(SoftKeyboard softKeyboard, EditorInfo attribute) {
+    public void onStartInput(KeyboardService softKeyboard, Resources resources, EditorInfo attribute) {
+        mComposing.setLength(0);
+        mCompletions = null;
+
         mPredictionOn = false;
         mCompletionOn = false;
 
@@ -147,7 +193,7 @@ public class KeyboardDelegate {
 
         // Update the label on the enter key, depending on what the application
         // says it will do.
-        mCurKeyboard.setImeOptions(softKeyboard.getResources(), attribute.imeOptions);
+        mCurKeyboard.setImeOptions(resources, attribute.imeOptions);
     }
 
     public boolean isCompletionOn() {
@@ -156,5 +202,93 @@ public class KeyboardDelegate {
 
     public boolean isPredictionOn() {
         return mPredictionOn;
+    }
+
+    public boolean setCompletions(CompletionInfo[] completions) {
+        if (isCompletionOn()) {
+            mCompletions = completions;
+            return true;
+        }
+
+        return false;
+    }
+
+    public CompletionInfo completionAt(int index) {
+        if (isCompletionOn() && mCompletions != null && index >= 0
+                && index < mCompletions.length) {
+            return mCompletions[index];
+        }
+
+        return null;
+    }
+
+    public boolean hasComposing() {
+        return mComposing.length() > 0;
+    }
+
+    public void resetComposing() {
+        mComposing.setLength(0);
+    }
+
+    public int translate(int c) {
+        if (hasComposing()) {
+            char accent = mComposing.charAt(mComposing.length() - 1);
+            int composed = KeyEvent.getDeadChar(accent, c);
+
+            if (composed != 0) {
+                c = composed;
+                mComposing.setLength(mComposing.length() - 1);
+            }
+        }
+        return c;
+    }
+
+    public boolean commitComposing(InputConnection inputConnection) {
+        if (hasComposing()) {
+            inputConnection.commitText(mComposing, mComposing.length());
+            return true;
+        }
+
+        return false;
+    }
+
+    public List<String> getSuggestions() {
+        List<String> list = null;
+        if (hasComposing()) {
+            list = new ArrayList<>();
+            String str = mComposing.toString();
+            list.add(str);
+            // extra code to split text as suggestion items.
+            for (int i = 0; i < str.length(); i++) {
+                list.add(String.valueOf(str.charAt(i)));
+            }
+        } else {
+        }
+        return list;
+    }
+
+    public void addComposing(InputConnection inputConnection, char ch) {
+        mComposing.append(ch);
+        inputConnection.setComposingText(mComposing, 1);
+    }
+
+    public boolean handleBackspace(InputConnection inputConnection) {
+        boolean handled = false;
+        final int length = mComposing.length();
+        if (length > 1) {
+            mComposing.delete(length - 1, length);
+            inputConnection.setComposingText(mComposing, 1);
+            handled = true;
+        } else if (length > 0) {
+            resetComposing();
+            inputConnection.commitText("", 0);
+            handled = true;
+        }
+
+        return handled;
+    }
+
+    public boolean isCapsLock() {
+        return mCapsLock;
     }
 }

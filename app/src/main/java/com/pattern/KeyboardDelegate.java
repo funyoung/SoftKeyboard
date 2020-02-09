@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.inputmethodservice.Keyboard;
 import android.text.InputType;
+import android.text.method.MetaKeyKeyListener;
 import android.view.KeyEvent;
 import android.view.WindowManager;
 import android.view.inputmethod.CompletionInfo;
@@ -32,6 +33,8 @@ public class KeyboardDelegate {
 
     private boolean mCapsLock;
     private long mLastShiftTime;
+
+    private long mMetaState;
 
     private LatinKeyboard mSymbolsKeyboard;
     private LatinKeyboard mSymbolsShiftedKeyboard;
@@ -119,7 +122,7 @@ public class KeyboardDelegate {
         softKeyboard.setLatinKeyboard(mCurKeyboard);
     }
 
-    public void onStartInput(KeyboardService softKeyboard, Resources resources, EditorInfo attribute) {
+    public void onStartInput(KeyboardService softKeyboard, Resources resources, EditorInfo attribute, boolean restarting) {
         mComposing.setLength(0);
         mCompletions = null;
 
@@ -194,6 +197,12 @@ public class KeyboardDelegate {
         // Update the label on the enter key, depending on what the application
         // says it will do.
         mCurKeyboard.setImeOptions(resources, attribute.imeOptions);
+
+
+        if (!restarting) {
+            // Clear shift states.
+            mMetaState = 0;
+        }
     }
 
     public boolean isCompletionOn() {
@@ -290,5 +299,20 @@ public class KeyboardDelegate {
 
     public boolean isCapsLock() {
         return mCapsLock;
+    }
+
+    public void onKeyUp(int keyCode, KeyEvent event) {
+        if (isPredictionOn()) {
+            mMetaState = MetaKeyKeyListener.handleKeyUp(mMetaState,
+                    keyCode, event);
+        }
+    }
+
+    public int translate(int keyCode, KeyEvent event) {
+        mMetaState = MetaKeyKeyListener.handleKeyDown(mMetaState,
+                keyCode, event);
+        int c = event.getUnicodeChar(MetaKeyKeyListener.getMetaState(mMetaState));
+        mMetaState = MetaKeyKeyListener.adjustMetaAfterKeypress(mMetaState);
+        return c;
     }
 }

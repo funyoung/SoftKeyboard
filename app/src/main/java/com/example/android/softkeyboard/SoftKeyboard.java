@@ -22,7 +22,6 @@ import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.os.IBinder;
 import android.text.InputType;
-import android.text.method.MetaKeyKeyListener;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.View;
@@ -72,8 +71,6 @@ public class SoftKeyboard extends InputMethodService
 
     private LatinKeyboardView mInputView;
     private CandidateView mCandidateView;
-
-    private long mMetaState;
 
     private final KeyboardDelegate keyboardDelegate = new KeyboardDelegate();
     private final ImmDelegate immDelegate;
@@ -145,13 +142,8 @@ public class SoftKeyboard extends InputMethodService
         
         // Reset our state.  We want to do this even if restarting, because
         // the underlying state of the text editor could have changed in any way.
-        keyboardDelegate.onStartInput(this, getResources(), attribute);
+        keyboardDelegate.onStartInput(this, getResources(), attribute, restarting);
         updateCandidates();
-        
-        if (!restarting) {
-            // Clear shift states.
-            mMetaState = 0;
-        }
     }
 
     /**
@@ -238,10 +230,8 @@ public class SoftKeyboard extends InputMethodService
      * PROCESS_HARD_KEYS option.
      */
     private boolean translateKeyDown(int keyCode, KeyEvent event) {
-        mMetaState = MetaKeyKeyListener.handleKeyDown(mMetaState,
-                keyCode, event);
-        int c = event.getUnicodeChar(MetaKeyKeyListener.getMetaState(mMetaState));
-        mMetaState = MetaKeyKeyListener.adjustMetaAfterKeypress(mMetaState);
+        int c = keyboardDelegate.translate(keyCode, event);
+
         InputConnection ic = getCurrentInputConnection();
         if (c == 0 || ic == null) {
             return false;
@@ -338,10 +328,7 @@ public class SoftKeyboard extends InputMethodService
         // keyboard, we need to process the up events to update the meta key
         // state we are tracking.
         if (PROCESS_HARD_KEYS) {
-            if (isPredictionOn()) {
-                mMetaState = MetaKeyKeyListener.handleKeyUp(mMetaState,
-                        keyCode, event);
-            }
+            keyboardDelegate.onKeyUp(keyCode, event);
         }
         
         return super.onKeyUp(keyCode, event);

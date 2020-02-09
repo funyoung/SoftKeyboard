@@ -5,6 +5,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.InputMethodSubtype;
 
 import com.example.android.softkeyboard.LatinKeyboardView;
+import com.example.android.softkeyboard.SimpleKeyboardView;
 
 /**
  * For Android KITKAT or later version (19+)
@@ -19,7 +20,7 @@ public class ImmDelegateImpl implements ImmDelegate {
         return mInputMethodManager.shouldOfferSwitchingToNextInputMethod(token);
     }
 
-    public void onStartInputView(LatinKeyboardView mInputView) {
+    public void onStartInputView(SimpleKeyboardView mInputView) {
         final InputMethodSubtype subtype = mInputMethodManager.getCurrentInputMethodSubtype();
         mInputView.setSubtypeOnSpaceKey(subtype);
     }

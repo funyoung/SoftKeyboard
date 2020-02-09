@@ -21,6 +21,7 @@ import com.example.android.softkeyboard.CandidateView;
 import com.example.android.softkeyboard.LatinKeyboard;
 import com.example.android.softkeyboard.LatinKeyboardView;
 import com.example.android.softkeyboard.R;
+import com.example.android.softkeyboard.SimpleKeyboardView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,7 @@ public class KeyboardDelegate implements KeyboardView.OnKeyboardActionListener {
      */
     private static final boolean PROCESS_HARD_KEYS = true;
 
-    private LatinKeyboardView mInputView;
+    private SimpleKeyboardView mInputView;
     private CandidateView mCandidateView;
 
     private StringBuilder mComposing = new StringBuilder();
@@ -154,7 +155,7 @@ public class KeyboardDelegate implements KeyboardView.OnKeyboardActionListener {
     }
 
     public View onCreateInputView(LayoutInflater inflater) {
-        mInputView = (LatinKeyboardView) inflater.inflate(R.layout.input, null);
+        mInputView = (SimpleKeyboardView) inflater.inflate(R.layout.input_simple, null);
         mInputView.setOnKeyboardActionListener(this);
         setLatinKeyboard(mQwertyKeyboard);
         return mInputView;

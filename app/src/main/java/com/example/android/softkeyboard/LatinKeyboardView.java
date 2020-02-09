@@ -23,12 +23,9 @@ import android.inputmethodservice.KeyboardView;
 import android.util.AttributeSet;
 import android.view.inputmethod.InputMethodSubtype;
 
+import static com.example.android.softkeyboard.LatinKeyboard.KEYCODE_OPTIONS;
+
 public class LatinKeyboardView extends KeyboardView {
-
-    static final int KEYCODE_OPTIONS = -100;
-    // TODO: Move this into android.inputmethodservice.Keyboard
-    static final int KEYCODE_LANGUAGE_SWITCH = -101;
-
     public LatinKeyboardView(Context context, AttributeSet attrs) {
         super(context, attrs);
     }

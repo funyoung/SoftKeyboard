@@ -25,6 +25,10 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 
 public class LatinKeyboard extends Keyboard {
+    public static final int KEYCODE_OPTIONS = -100;
+    // TODO: Move this into android.inputmethodservice.Keyboard
+    public static final int KEYCODE_LANGUAGE_SWITCH = -101;
+
 
     private Key mEnterKey;
     private Key mSpaceKey;
@@ -72,7 +76,7 @@ public class LatinKeyboard extends Keyboard {
         } else if (key.codes[0] == Keyboard.KEYCODE_MODE_CHANGE) {
             mModeChangeKey = key;
             mSavedModeChangeKey = new LatinKey(res, parent, x, y, parser);
-        } else if (key.codes[0] == LatinKeyboardView.KEYCODE_LANGUAGE_SWITCH) {
+        } else if (key.codes[0] == KEYCODE_LANGUAGE_SWITCH) {
             mLanguageSwitchKey = key;
             mSavedLanguageSwitchKey = new LatinKey(res, parent, x, y, parser);
         }
@@ -83,7 +87,7 @@ public class LatinKeyboard extends Keyboard {
      * Dynamically change the visibility of the language switch key (a.k.a. globe key).
      * @param visible True if the language switch key should be visible.
      */
-    void setLanguageSwitchKeyVisibility(boolean visible) {
+    public void setLanguageSwitchKeyVisibility(boolean visible) {
         if (visible) {
             // The language switch key should be visible. Restore the size of the mode change key
             // and language switch key using the saved layout.

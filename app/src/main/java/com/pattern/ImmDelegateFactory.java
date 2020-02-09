@@ -13,8 +13,8 @@ import java.util.Observable;
  * Singleton, java implementation, thread safe
  */
 public class ImmDelegateFactory extends Observable {
-    public static ImmDelegate getDelegate() {
-        return getInstance().createDelegate();
+    public static ImmDelegate getDelegate(InputMethodManager imm) {
+        return getInstance().createDelegate(imm);
     }
 
     /**
@@ -23,11 +23,13 @@ public class ImmDelegateFactory extends Observable {
      * Strategy for selection decision rather than if/else hard code.
      * @return
      */
-    private ImmDelegate createDelegate() {
+    private ImmDelegate createDelegate(InputMethodManager imm) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
             return new ImmDelegateNull();
         } else {
-            return new ImmDelegateImpl();
+            ImmDelegateImpl delegate = new ImmDelegateImpl();
+            delegate.onCreate(imm);
+            return delegate;
         }
     }
 

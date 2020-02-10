@@ -32,6 +32,9 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.pattern.action.ActionAnimator;
+import com.pattern.action.ActionConf;
+
 import java.util.List;
 
 public class SimpleKeyboardView extends FrameLayout {
@@ -167,39 +170,73 @@ public class SimpleKeyboardView extends FrameLayout {
 
         @Override
         public boolean onDown(MotionEvent e) {
+            ActionAnimator.press(touchView);
+
             Key key = getTouchKey();
             if (null != key && null != mKeyboardActionListener) {
                 mKeyboardActionListener.onPress(key.codes[0]);
+                return true;
             }
+
             return false;
         }
 
         @Override
         public void onShowPress(MotionEvent e) {
-
+//            Key key = getTouchKey();
+//            if (null != key && null != mKeyboardActionListener) {
+//                mKeyboardActionListener.onText(key.label);
+//            }
+            ActionAnimator.popup(touchView);
         }
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
+            ActionAnimator.tap(touchView);
             Key key = getTouchKey();
             if (null != key && null != mKeyboardActionListener) {
                 mKeyboardActionListener.onKey(key.codes[0], key.codes);
+                return true;
             }
             return false;
         }
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            ActionAnimator.scroll(touchView);
             return false;
         }
 
         @Override
         public void onLongPress(MotionEvent e) {
-
+            ActionAnimator.longPress(touchView);
         }
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            Key key = getTouchKey();
+            if (null != key && null != mKeyboardActionListener) {
+                float dx = e2.getX() - e1.getX();
+                float dy = e2.getY() - e1.getY();
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (dx > ActionConf.SWIPE_THRESHOLD) {
+                        mKeyboardActionListener.swipeRight();
+                        ActionAnimator.swipeRight(touchView);
+                    } else if (dx < -ActionConf.SWIPE_THRESHOLD) {
+                        mKeyboardActionListener.swipeLeft();
+                        ActionAnimator.swipeLeft(touchView);
+                    }
+                } else {
+                    if (dy > ActionConf.SWIPE_THRESHOLD) {
+                        mKeyboardActionListener.swipeDown();
+                        ActionAnimator.swipeDown(touchView);
+                    } else if (dy < -ActionConf.SWIPE_THRESHOLD) {
+                        mKeyboardActionListener.swipeUp();
+                        ActionAnimator.swipeUp(touchView);
+                    }
+                }
+                return true;
+            }
             return false;
         }
     };

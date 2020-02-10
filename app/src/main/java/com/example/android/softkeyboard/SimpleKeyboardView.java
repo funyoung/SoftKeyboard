@@ -22,19 +22,17 @@ import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.Keyboard.Key;
 import android.inputmethodservice.KeyboardView;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.util.TypedValue;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodSubtype;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.List;
-
-import static com.example.android.softkeyboard.LatinKeyboard.KEYCODE_OPTIONS;
 
 public class SimpleKeyboardView extends FrameLayout {
     private static final String TAG = SimpleKeyboardView.class.getSimpleName();
@@ -69,6 +67,10 @@ public class SimpleKeyboardView extends FrameLayout {
         mKeyboardActionListener = listener;
     }
     public void setKeyboard(Keyboard keyboard) {
+        if (keyboard != mKeyboard) {
+            removeAllViews();
+        }
+
         mKeyboard = keyboard;
         List<Key> keys = mKeyboard.getKeys();
 
@@ -79,6 +81,7 @@ public class SimpleKeyboardView extends FrameLayout {
                 break;
             }
         }
+        invalidateAllKeys();
     }
 
     private View buildKey(Key k) {
@@ -98,6 +101,8 @@ public class SimpleKeyboardView extends FrameLayout {
         params.leftMargin = k.x;
         params.topMargin = k.y;
         view.setLayoutParams(params);
+
+        attachGesture(view, k);
         return view;
     }
 
@@ -158,4 +163,82 @@ public class SimpleKeyboardView extends FrameLayout {
         return false;
     }
 
+    private final GestureDetector.OnGestureListener gestureListener = new GestureDetector.OnGestureListener() {
+
+        @Override
+        public boolean onDown(MotionEvent e) {
+            Key key = getTouchKey();
+            if (null != key && null != mKeyboardActionListener) {
+                mKeyboardActionListener.onPress(key.codes[0]);
+            }
+            return false;
+        }
+
+        @Override
+        public void onShowPress(MotionEvent e) {
+
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            Key key = getTouchKey();
+            if (null != key && null != mKeyboardActionListener) {
+                mKeyboardActionListener.onKey(key.codes[0], key.codes);
+            }
+            return false;
+        }
+
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            return false;
+        }
+
+        @Override
+        public void onLongPress(MotionEvent e) {
+
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            return false;
+        }
+    };
+
+    private GestureDetector gd;
+    private GestureDetector getGd() {
+        if (null == gd) {
+            gd = new GestureDetector(getContext(), gestureListener);
+        }
+        return gd;
+    }
+
+//    @Override
+//    public boolean dispatchTouchEvent(MotionEvent ev) {
+//        getGd().onTouchEvent(ev); // 让GestureDetector响应触碰事件
+//        super.dispatchTouchEvent(ev); // 让Activity响应触碰事件
+//        return false;
+//    }
+
+    private View touchView;
+    private Key getTouchKey() {
+        if (null != touchView) {
+            Object tag = touchView.getTag();
+            if (tag instanceof Key) {
+                return (Key) tag;
+            }
+        }
+        return null;
+    }
+    private void attachGesture(View view, Key key) {
+        view.setTag(key);
+        view.setClickable(true);
+        view.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                touchView = v;
+                getGd().onTouchEvent(event);
+                return true; // 注：返回true才能完整接收触摸事件
+            }
+        });
+    }
 }

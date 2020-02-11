@@ -164,7 +164,7 @@ public class KeyboardDelegate implements KeyboardView.OnKeyboardActionListener {
     public void onStartInputView() {
         setLatinKeyboard(mCurKeyboard);
         mInputView.closing();
-        immDelegate.onStartInputView(mInputView);
+        //immDelegate.onStartInputView(mInputView);
     }
 
     public void onStartInput(Resources resources, EditorInfo attribute, boolean restarting) {

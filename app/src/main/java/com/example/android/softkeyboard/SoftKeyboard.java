@@ -37,12 +37,6 @@ import com.pattern.KeyboardService;
  * a basic example for how you would get started writing an input method, to
  * be fleshed out as appropriate.
  *
- * todo:
- * 1. View encapsulation
- * 2. Completion and Composing data responsibility
- * 3. Caps Lock and Shift
- * 4. Meta state for hard keyboard.
- *
  */
 public class SoftKeyboard extends InputMethodService implements KeyboardService {
     static final boolean DEBUG = false;

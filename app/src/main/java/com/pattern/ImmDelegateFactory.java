@@ -1,11 +1,7 @@
 package com.pattern;
 
 import android.os.Build;
-import android.os.IBinder;
 import android.view.inputmethod.InputMethodManager;
-import android.view.inputmethod.InputMethodSubtype;
-
-import com.example.android.softkeyboard.LatinKeyboardView;
 
 import java.util.Observable;
 

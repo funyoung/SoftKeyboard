@@ -1,23 +1,22 @@
 package com.skin;
 
-import com.pattern.FileTraversing;
+import com.pattern.FileVisiting;
 
 import java.io.File;
 import java.util.List;
 
-public class ForestSkinParser {
-
+public class VisitForestSkin {
     public static List<String> readSkinPathList(String path) {
-        FileTraversing scanner = new FileTraversing(SkinPathVisitor.class);
+        FileVisiting scanner = new FileVisiting(SkinPathVisitor.class);
         return scanner.traverse(path);
     }
 
     public static List<String> readSkinNameList(String path) {
-        FileTraversing scanner = new FileTraversing(SkinNameVisitor.class);
+        FileVisiting scanner = new FileVisiting(SkinNameVisitor.class);
         return scanner.traverse(path);
     }
 
-    private static final class SkinNameVisitor extends FileTraversing.AbstractVisitor {
+    private static final class SkinNameVisitor extends FileVisiting.AbstractVisitor {
         public SkinNameVisitor(File folder, String name) {
             super(folder, name);
         }
@@ -33,7 +32,7 @@ public class ForestSkinParser {
         }
     }
 
-    private static final class SkinPathVisitor extends FileTraversing.AbstractVisitor {
+    private static final class SkinPathVisitor extends FileVisiting.AbstractVisitor {
         public SkinPathVisitor(File folder, String name) {
             super(folder, name);
         }

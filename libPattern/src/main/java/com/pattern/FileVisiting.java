@@ -13,12 +13,12 @@ import java.util.List;
  * @param <U>
  * @param <T>
  */
-public class FileTraversing<U, T extends FileTraversing.AbstractVisitor<U>> {
+public class FileVisiting<U, T extends FileVisiting.AbstractVisitor<U>> {
     /**
      * The type of template parameter.
      */
     private final Class<T> clazz;
-    public FileTraversing(Class<T> clazz) {
+    public FileVisiting(Class<T> clazz) {
         this.clazz = clazz;
     }
 

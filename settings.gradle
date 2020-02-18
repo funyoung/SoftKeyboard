@@ -1,1 +1,1 @@
-include ':app', ':libPattern'
+include ':app', ':libPattern', ':libJunitHelper'

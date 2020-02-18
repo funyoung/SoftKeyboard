@@ -1,4 +1,4 @@
-package com.pattern;
+package com.pattern.common;
 
 /**
  * The template interface of visitor pattern.

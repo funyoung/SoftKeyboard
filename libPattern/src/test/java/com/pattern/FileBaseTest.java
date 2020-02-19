@@ -48,17 +48,4 @@ public class FileBaseTest {
     }
 
 
-    protected static final class NameVisitor extends BaseStrategy<String> {
-        @Override
-        public String parseFile(String filePath) {
-            return new File(filePath).getName();
-        }
-    }
-
-    protected static final class PathVisitor extends BaseStrategy<String> {
-        @Override
-        public String parseFile(String filePath) {
-            return filePath;
-        }
-    }
 }

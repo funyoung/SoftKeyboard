@@ -1,5 +1,8 @@
 package com.pattern;
 
+import com.pattern.strategy.ParseFileNameStrategy;
+import com.pattern.strategy.ParseFilePathStrategy;
+
 import org.junit.Test;
 
 import java.util.List;
@@ -20,13 +23,13 @@ public class FileReadingTest extends FileBaseTest {
 
     @Test
     public void readFilePathListTest() {
-        List<String> pathList = read(new PathVisitor());
+        List<String> pathList = read(new ParseFilePathStrategy());
         assertFalse(pathList.isEmpty());
     }
 
     @Test
     public void readFileNameListTest() {
-        List<String> nameList = read(new NameVisitor());
+        List<String> nameList = read(new ParseFileNameStrategy());
         assertFalse(nameList.isEmpty());
     }
 }

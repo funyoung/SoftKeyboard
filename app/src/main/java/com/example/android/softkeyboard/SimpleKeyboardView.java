@@ -34,6 +34,7 @@ import android.widget.TextView;
 
 import com.pattern.action.ActionAnimator;
 import com.pattern.action.ActionConf;
+import com.pattern.action.factory.ActionHandlerFactory;
 
 import java.util.List;
 
@@ -64,11 +65,6 @@ public class SimpleKeyboardView extends FrameLayout {
         invalidateAllKeys();
     }
 
-    /** Listener for {@link KeyboardView.OnKeyboardActionListener}. */
-    private KeyboardView.OnKeyboardActionListener mKeyboardActionListener;
-    public void setOnKeyboardActionListener(KeyboardView.OnKeyboardActionListener listener) {
-        mKeyboardActionListener = listener;
-    }
     public void setKeyboard(Keyboard keyboard) {
         if (keyboard != mKeyboard) {
             removeAllViews();
@@ -167,18 +163,9 @@ public class SimpleKeyboardView extends FrameLayout {
     }
 
     private final GestureDetector.OnGestureListener gestureListener = new GestureDetector.OnGestureListener() {
-
         @Override
         public boolean onDown(MotionEvent e) {
-            ActionAnimator.press(touchView);
-
-            Key key = getTouchKey();
-            if (null != key && null != mKeyboardActionListener) {
-                mKeyboardActionListener.onPress(key.codes[0]);
-                return true;
-            }
-
-            return false;
+            return ActionHandlerFactory.getInstance().onDown(getKeyboard(), getTouchKey());
         }
 
         @Override
@@ -187,56 +174,47 @@ public class SimpleKeyboardView extends FrameLayout {
 //            if (null != key && null != mKeyboardActionListener) {
 //                mKeyboardActionListener.onText(key.label);
 //            }
-            ActionAnimator.popup(touchView);
+//            ActionAnimator.popup(touchView);
         }
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            ActionAnimator.tap(touchView);
-            Key key = getTouchKey();
-            if (null != key && null != mKeyboardActionListener) {
-                mKeyboardActionListener.onKey(key.codes[0], key.codes);
-                return true;
-            }
-            return false;
+            return ActionHandlerFactory.getInstance().onClick(getKeyboard(), getTouchKey());
         }
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            ActionAnimator.scroll(touchView);
+//            ActionAnimator.scroll(touchView);
             return false;
         }
 
         @Override
         public void onLongPress(MotionEvent e) {
-            ActionAnimator.longPress(touchView);
+            ActionHandlerFactory.getInstance().onLongClick(getKeyboard(), getTouchKey());
         }
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             Key key = getTouchKey();
-            if (null != key && null != mKeyboardActionListener) {
+            if (null != key) {
                 float dx = e2.getX() - e1.getX();
                 float dy = e2.getY() - e1.getY();
                 if (Math.abs(dx) > Math.abs(dy)) {
                     if (dx > ActionConf.SWIPE_THRESHOLD) {
-                        mKeyboardActionListener.swipeRight();
-                        ActionAnimator.swipeRight(touchView);
+                        return ActionHandlerFactory.getInstance().swipeLeft(getKeyboard(), getTouchKey());
                     } else if (dx < -ActionConf.SWIPE_THRESHOLD) {
-                        mKeyboardActionListener.swipeLeft();
-                        ActionAnimator.swipeLeft(touchView);
+                        return ActionHandlerFactory.getInstance().swipeRight(getKeyboard(), getTouchKey());
                     }
                 } else {
                     if (dy > ActionConf.SWIPE_THRESHOLD) {
-                        mKeyboardActionListener.swipeDown();
-                        ActionAnimator.swipeDown(touchView);
+                        return ActionHandlerFactory.getInstance().swipeDown(getKeyboard(), getTouchKey());
                     } else if (dy < -ActionConf.SWIPE_THRESHOLD) {
-                        mKeyboardActionListener.swipeUp();
-                        ActionAnimator.swipeUp(touchView);
+                        return ActionHandlerFactory.getInstance().swipeUp(getKeyboard(), getTouchKey());
                     }
                 }
                 return true;
             }
+
             return false;
         }
     };
@@ -257,6 +235,10 @@ public class SimpleKeyboardView extends FrameLayout {
 //    }
 
     private View touchView;
+    public View getCurrentView() {
+        return touchView;
+    }
+
     private Key getTouchKey() {
         if (null != touchView) {
             Object tag = touchView.getTag();

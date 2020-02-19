@@ -34,6 +34,8 @@ dependencies {
 
     implementation project(path: ':libPattern')
 
+    implementation 'org.zeroturnaround:zt-zip:1.14'
+
     implementation 'com.daimajia.easing:library:2.0@aar'
     implementation 'com.daimajia.androidanimations:library:2.3@aar'
 

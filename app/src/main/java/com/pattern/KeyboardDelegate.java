@@ -22,6 +22,7 @@ import com.example.android.softkeyboard.LatinKeyboard;
 import com.example.android.softkeyboard.LatinKeyboardView;
 import com.example.android.softkeyboard.R;
 import com.example.android.softkeyboard.SimpleKeyboardView;
+import com.pattern.action.factory.ActionHandlerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -156,7 +157,10 @@ public class KeyboardDelegate implements KeyboardView.OnKeyboardActionListener {
 
     public View onCreateInputView(LayoutInflater inflater) {
         mInputView = (SimpleKeyboardView) inflater.inflate(R.layout.input_simple, null);
-        mInputView.setOnKeyboardActionListener(this);
+
+//        mInputView.setOnKeyboardActionListener(this);
+        ActionHandlerFactory.getInstance().setActionInvoker(new ActionInvokerAdapter(this));
+
         setLatinKeyboard(mQwertyKeyboard);
         return mInputView;
     }
@@ -729,5 +733,9 @@ public class KeyboardDelegate implements KeyboardView.OnKeyboardActionListener {
 
     private IBinder getToken() {
         return keyboardService.getToken();
+    }
+
+    public View getCurrentView() {
+        return mInputView.getCurrentView();
     }
 }

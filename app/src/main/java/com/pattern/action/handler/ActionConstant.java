@@ -5,11 +5,11 @@ package com.pattern.action.handler;
  */
 public interface ActionConstant {
     String actionDown = "actionDown";
-    String actionUp = "actionDown";
-    String actionClicked = "actionDown";
-    String actionLongClicked = "actionDown";
-    String actionSwipeLeft = "actionDown";
-    String actionSwipeRight = "actionDown";
-    String actionSwipeUp = "actionDown";
-    String actionSwipeDown = "actionDown";
+    String actionUp = "actionUp";
+    String actionClicked = "actionClicked";
+    String actionLongClicked = "actionLongClicked";
+    String actionSwipeLeft = "actionSwipeLeft";
+    String actionSwipeRight = "actionSwipeRight";
+    String actionSwipeUp = "actionSwipeUp";
+    String actionSwipeDown = "actionSwipeDown";
 }

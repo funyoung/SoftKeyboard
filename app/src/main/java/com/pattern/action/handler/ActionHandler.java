@@ -2,14 +2,27 @@ package com.pattern.action.handler;
 
 import android.inputmethodservice.Keyboard;
 
-import java.security.Key;
+import com.pattern.action.invoker.ActionInvoker;
 
-public interface ActionHandler {
-    ActionHandler EMPTY_HANDLER = new ActionHandler() {
+/**
+ * Abstract class to decouple action response interface (ActionInvoker) from its
+ * client (Keyboard view, etc).
+ *
+ * Important: execute MUST be set before any call to execute method.
+ */
+public abstract class ActionHandler {
+    public static final ActionHandler EMPTY_HANDLER = new ActionHandler() {
         @Override
-        public void execute(Keyboard keyboard, Key key) {
+        public boolean execute(Keyboard keyboard, Keyboard.Key key) {
+            return true;
         }
     };
 
-    void execute(Keyboard keyboard, Key key);
+    protected ActionInvoker actionInvoker;
+
+    public abstract boolean execute(Keyboard keyboard, Keyboard.Key key);
+
+    public void setActionInvoker(ActionInvoker invoker) {
+        this.actionInvoker = invoker;
+    }
 }
